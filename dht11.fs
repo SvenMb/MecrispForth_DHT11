@@ -1,10 +1,6 @@
 PB3 constant DHT11 \ Port am STM32 
 
-6 buffer: dht11data
-
 : readDHT11
-
-0 dht11data 5 + c! \ reset error
 
 omode-pp DHT11 io-mode!
 DHT11 ioc!
@@ -15,144 +11,74 @@ IMODE-FLOAT DHT11 io-mode!
 
 DHT11 io@
  if
-	1 dht11data 5 + c! \ errorcode 1
+	-1 \ errorcode -1 \ (doesn't start phase 1)
 	quit
  then
  
 80 us 
 DHT11 io@
  not if
-	2 dht11data 5 + c! \ errorcode 2
+	-2 \ errorcode -2 \ (doesn"t start phase 2)
 	quit
  then
  
 80 us
 
-5 0 do
-	0
-	8 0 do
-		begin DHT11 io@ 0<> until
-		30 us
-		dht11 io@ 0<> if 1 else 0 then 7 I - lshift or
-		1000 0 do DHT11 io@ 0= 
-			if leave then
-			I 999 =
-			if 3 dht11data 5 + c! then \ errorcode 3
-		loop
-	loop
-	dht11data I + c!
-loop
-
 0
-4 0 do
-dht11data I + c@ +
+5 0 do
+  0
+  8 0 do
+    begin DHT11 io@ 0<> until
+      30 us
+      dht11 io@ 0<> if 1 else 0 then
+      7 I - lshift or
+      1000 0 do
+        DHT11 io@ 0= if leave then
+        I 999 = if  \ errorcode -3 \ (no answer in transfer)
+	  k 0 ?do drop loop \ cleanup stack
+      	  -3 quit
+        then
+      loop
+    loop
+  dup rot + \ add up checksum      
 loop
-dht11data 4 + c@ <>
-if 4 dht11data 5 + c! then
 
-\ ab hier ausgabe fuer mqtt
+swap dup + - \ last one is Checksum 
+0<> if 2drop 2drop -4 quit then \ errorcode -4 (checksum wrong)
 
-dht11data 5 + c@
-0<>
-if 
-	." dht11;DHT Error# " dht11data 5 + c@ . CR 
-	quit
+swap
+
+\ take care of negative temps
+dup $80 and if
+    $7f and negate
 then
 
-\ SENSOR = {"Time":"2020-02-22T11:20:23","DHT11":{"Temperature":18.2,"Humidity":42.0},"TempUnit":"C"}
+10 * +
 
-." SENSOR;{"
-$22 emit ." DHT11" $22 emit $3a emit $7b emit
-$22 emit ." Temperature" $22 emit $3a emit
-
-dht11data 2+ c@
-dup $80 and
-if $2d emit then
-$7f and
-10 /mod
-.digit emit .digit emit 
-$2e emit 
-dht11data 3 + c@ 10 mod .digit emit $2c emit
-
-$22 emit ." Humidity" $22 emit $3a emit
-
-dht11data c@
-10 /mod
-.digit emit .digit emit 
-$2e emit 
-dht11data 1+ c@ 10 mod .digit emit
-$7d emit $2c emit $22 emit ." TempUnit" $22 emit $3a emit $22 emit $43 emit $22 emit $7d emit CR
+\ humidity as last, since then a negative value can indicate error 
+-rot
+swap 10 * + 
 ;
 
-: temp.
-dht11data 5 + c@
-0<>
-if 
-	s" DHT E" dispbuffer 8 + swap move
-	dht11data 5 + c@ 10 mod .digit dispbuffer 13 + c! 
-else
 
-dht11data 2+ c@
-dup $80 and
-if char -  else $20 then
-dispbuffer 8 + c!
-
-$7f and
-10 /mod
-.digit dispbuffer 9 + c!
-.digit 128 + dispbuffer 10 + c!
-dht11data 3 + c@ 10 mod
-.digit dispbuffer 11 + c!
-127 dispbuffer 12 + c!
-$43 dispbuffer 13 + c!
-then
-;
-
-: humi.
-dht11data 5 + c@
-0<>
-if 
-	s" DHT E" dispbuffer 8 + swap move
-	dht11data 5 + c@ 10 mod .digit dispbuffer 13 + c! 
-else
-
-$20 dispbuffer 8 + c!
-
-dht11data c@
-10 /mod
-.digit dispbuffer 9 + c!
-.digit 128 + dispbuffer 10 + c!
-dht11data 1 + c@ 10 mod
-.digit dispbuffer 11 + c!
-$20 dispbuffer 12 + c!
-$48 dispbuffer 13 + c!
-then
-;
 
 : DHT11.
-dht11data 5 + c@
-0<>
-if 
-	CR ." DHT Error# " dht11data 5 + c@ . 
-	quit
+CR
+
+dup 0< if 
+  ." DHT Error# " . 
+  quit
 then
 
-dht11data 2+ c@
-dup $80 and
-if ." -" then
-$7f and
-CR 10 /mod
-.digit emit .digit emit 
-$2c emit 
-dht11data 3 + c@ 10 mod .
+swap \ temp first
+
+s>d swap over dabs <# # $2E hold #S rot sign #> type
 ." °C"
 
-dht11data c@
-CR 10 /mod
-.digit emit .digit emit 
-$2c emit 
-dht11data 1+ c@ 10 mod .
-." % Feuchtigkeit"
+\ no negative values in humi
+CR
+0 swap 0 <# # $2E hold #S #> type
+." % humidity"
 
 ;
 
