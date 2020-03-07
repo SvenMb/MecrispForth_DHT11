@@ -76,7 +76,8 @@ PB3 constant DHT11
 
   CR
 
-  dup 0< if 
+  dup 0< if
+    drop \ clean stack
     ." DHT Error# " . 
     exit
   then
