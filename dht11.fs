@@ -51,7 +51,7 @@ PB3 constant DHT11
   loop
 
   swap dup + - \ last one is Checksum 
-  0<> if 2drop 2drop -4 quit then \ errorcode -4 (checksum wrong)
+  0<> if 2drop 2drop -4 exit then \ errorcode -4 (checksum wrong)
 
   swap
 
