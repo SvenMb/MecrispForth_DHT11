@@ -3,7 +3,7 @@ Forth words for DHT11 temperature and humidity module
 
 This was written on an STM32f103, but should run on any STM32 microcontroller.
 
-This is written for Mecrips-Stellaris Forth:
+This is written and tested for Mecrips-Stellaris Forth:
 http://mecrisp.sourceforge.net/
 
 And I used pin??.fs, io.fs and hal.fs from Jean-Claude Wippler's flib to simplify the hardware access. 
