@@ -1,5 +1,5 @@
 \ Example DHT11 read program with interupt use
-\ with DHT11 on PB3
+\ DHT11 on PB3
 
 \ needs io.fs from jcw
 \ made for STM32F103C8 'blue pill'
@@ -37,7 +37,7 @@ afio $414 + constant EXTI_PR
 0 variable DHT11Time
 6 buffer: dht11data
 
-
+\ prints out DHT11Data
 : dht11.
     CR
     
@@ -64,22 +64,22 @@ afio $414 + constant EXTI_PR
 ;
 
 
-\ irq service routine for IR input
+\ irq service routine for DHT11
 \ very simple not much error prone, but works for me :)
 : dht11_isr
     3 bit EXTI_PR bit@ not if exit then  \ exit wenn nicht exti3
-    micros DHT11Time @ over DHT11Time ! -  \ get diff to last irq
+    micros DHT11Time @ over DHT11Time ! -  \ get diff to last irq time
     case
-	dup 70 - 20 < ?of
+	dup 70 - 20 < ?of \ short impuls L
 	    DHT11data 5 + c@ 8 /mod \ which bit
 	    DHT11data +
-	    swap 7 - abs bit swap
+	    swap 7 - abs bit swap \ MSB first
 	    cbic! \ clear bit
 	endof 
-	dup 110 - 20 < ?of
+	dup 110 - 20 < ?of \ longer impuls H
 	    DHT11data 5 + c@ 8 /mod \ which bit
 	    DHT11data +
-	    swap 7 - abs bit swap
+	    swap 7 - abs bit swap \ msb first
 	    cbis! \ set bit
         endof
 	DHT11data 5 + c@ $f0 >= not if \ wrong timing after start
