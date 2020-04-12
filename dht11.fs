@@ -1,3 +1,4 @@
+( start dht11: ) here hex.
 \ define Port am STM32, can be any port 
 PB3 constant DHT11
 
@@ -93,4 +94,6 @@ PB3 constant DHT11
   0 <# # $2E hold #S #> type
   ." % humidity"
 ;
+
+( end dht11: ) here hex.
 
